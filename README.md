@@ -1,4 +1,8 @@
-<h1 align="center">CLARION</h1>
+<p align="center">
+  <a href="https://github.com/Akshay090/svg-banners">
+    <img src="https://svg-banners.vercel.app/api?type=luminance&text1=Clarion🫧&width=400&height=80" alt="Clarion Banner" width="400">
+  </a>
+</p>
 
 <h3 align="center">Deterministic Scientific and Technical Documentation Generator</h3>
 
