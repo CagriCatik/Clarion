@@ -146,6 +146,35 @@ hr {
 }
 
 
+
+/* Utility */
+.mobile-only {
+  display: none;
+}
+
+/* Sidebar Overlay */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 9;
+  animation: fade-in 0.2s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 /* MAIN AREA */
 .main {
   flex: 1;
@@ -235,6 +264,26 @@ hr {
   color: var(--primary);
 }
 
+
+/* Menu Button */
+.menu-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  margin-right: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.menu-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--primary);
+}
 
 /* FOOTER */
 .footer {
@@ -581,10 +630,29 @@ hr {
 }
 
 /* Responsive */
+/* Responsive */
 @media (max-width: 1000px) {
+  .mobile-only {
+    display: flex;
+  }
+
   .sidebar {
-    display: none;
-    /* Hide settings on small screens or make it a drawer? For now hide to save space */
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    /* Slightly wider for touch */
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+    z-index: 20;
+    /* Above navbar */
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
   }
 
   .content-container {

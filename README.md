@@ -61,10 +61,8 @@ Clarion follows a strict, multi-phase generation process to minimize hallucinati
 
 1. **Context-Aware Chunking**
    Large inputs are split using a Markdown-aware splitter that preserves semantic boundaries such as headers and paragraphs.
-
 2. **Planning Before Generation**
    Each document is preceded by an explicit planning phase (chain-of-thought style) to define structure and intent before text generation.
-
 3. **Reflection and Self-Correction**
    A post-generation review pass validates formatting, Mermaid syntax, and structural consistency, correcting errors automatically.
 
@@ -126,7 +124,6 @@ On Windows, a single script is provided:
 
 This launches the FastAPI backend and the React frontend together using `concurrently`.
 
-
 ---
 
 ### Option B: Docker
@@ -161,5 +158,8 @@ cd gui
 npm run tauri dev
 ```
 
+## Disclaimer
 
-
+* Clarion improves consistency and structure by using a multi-stage LLM pipeline, but it does not guarantee factual correctness by itself. 
+* Outputs should be treated as high-quality drafts derived from the input, not as an authoritative source of truth. 
+* For scientific, security, or safety-critical documentation, results must be reviewed and validated against the original transcript and external references.

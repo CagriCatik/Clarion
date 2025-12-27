@@ -1,93 +1,68 @@
-# OTA Rollback Attack Prevention
+# Rollback Attack Prevention in OTA Systems
 
 ## Overview
-A **rollback (downgrade) attack** forces a device to reinstall an older, vulnerable firmware version. Preventing this requires **cryptographic validation** and **strict version enforcement** so that a device never accepts firmware with a version identifier lower than the one already installed.
+A **rollback (downgrade) attack** forces a device to install an older firmware version that contains known vulnerabilities. Preventing this requires a combination of cryptographic validation, strict version enforcement, and tamper‑resistant storage of version state.
 
 ---
-## Threat Model
-| Actor | Goal | Capability |
-|-------|------|------------|
-| Attacker | Re‑install vulnerable firmware | Replay old OTA packages, tamper with metadata, attempt to reset version state |
-| Insider | Manipulate version storage | Access to non‑volatile memory, limited hardware control |
+## Core Principles
+1. **Signed Metadata** – Firmware version and hash are bundled in metadata signed by the OEM.
+2. **Integrity Verification** – The ECU validates the signature and recomputes the firmware hash.
+3. **Monotonic Version Check** – The incoming version must be *greater* than the stored version.
+4. **Secure Version Storage** – Current version or anti‑rollback counter is kept in non‑volatile, tamper‑resistant memory (e.g., secure flash, OTP fuses, hardware monotonic counters).
+5. **Hardware‑Backed Enforcement** – Secure boot and hardware counters enforce the rule before any code executes.
 
 ---
-## Core Protection Mechanisms
-1. **Signed Metadata** – OEM signs a JSON/YAML manifest containing `version`, `hash`, and other descriptors.
-2. **Hash Verification** – ECU computes a cryptographic hash of the received image and matches it against the signed manifest.
-3. **Version Comparison** – The ECU compares the manifest `version` with the stored version (or monotonic counter). Updates with `version <= stored` are rejected.
-4. **Secure Version Storage** – The current version or counter is kept in tamper‑resistant non‑volatile memory (secure flash, OTP fuses, hardware monotonic counters).
-5. **Secure Boot Integration** – The bootloader re‑checks the version before handing control to the firmware, guaranteeing protection from the earliest execution point.
-
----
-## OTA Rollback Protection Flow
+## Verification Flow Diagram
 ```mermaid
 graph TD
-    Start["Start OTA Update Process"]
-    VerifySig["Verify Metadata Signature"]
-    ComputeHash["Compute Firmware Hash"]
-    CompareHash["Compare Hash with Metadata"]
-    VersionCheck["Check Firmware Version"]
-    StoreVersion["Store New Version (Secure)"]
-    Accept["Accept and Install Firmware"]
-    Reject["Reject Update"]
-    End["End Process"]
+    Receive_Update["Receive Update"] --> Verify_Signature["Verify Signature"]
+    Verify_Signature --> Compute_Hash["Compute Firmware Hash"]
+    Compute_Hash --> Compare_Hash["Compare Hashes"]
+    Compare_Hash --> Check_Version{"Version >= Current?"}
+    Check_Version -- "yes" --> Accept_Update["Accept Update"]
+    Check_Version -- "no" --> Reject_Update["Reject Update"]
+    Accept_Update --> Update_Version_Storage["Store New Version"]
+    Update_Version_Storage --> Secure_Boot_Verify["Secure Boot Verify"]
+    Reject_Update --> End["Abort Process"]
+    Secure_Boot_Verify --> End
+```
 
-    Start --> VerifySig
-    VerifySig -- "Signature Valid" --> ComputeHash
-    VerifySig -. "Invalid" .-> Reject
-    ComputeHash --> CompareHash
-    CompareHash -- "Hash Match" --> VersionCheck
-    CompareHash -. "Mismatch" .-> Reject
-    VersionCheck -- "Version > Stored" --> StoreVersion
-    VersionCheck -. "Version <= Stored" .-> Reject
-    StoreVersion --> Accept
-    Accept --> End
-    Reject --> End
-``` 
+**Explanation**
+- The ECU first **verifies the metadata signature** using the OEM‑provisioned public key.
+- It then **hashes the received image** and checks it against the signed hash.
+- A **decision node** (`Check_Version`) ensures the new version is strictly greater than the stored version.
+- On success, the new version is **persisted** in secure storage and the bootloader re‑validates it on next boot.
 
 ---
 ## Secure Version Storage Architecture
 ```mermaid
 graph TD
-    ECU["ECU"]
-    SecureFlash["Secure Flash / OTP Fuse"]
-    MonotonicCounter["Hardware Monotonic Counter"]
-    Bootloader["Secure Bootloader"]
-
-    ECU -- "Reads stored version" --> SecureFlash
-    ECU -- "Reads counter" --> MonotonicCounter
-    Bootloader -- "Verifies version before boot" --> SecureFlash
+    ECU["ECU"] --> Secure_Flash["Secure Flash (NV)"]
+    Secure_Flash --> Version_Counter["Monotonic Counter"]
+    Version_Counter --> OTP_Fuse["OTP Fuse (One‑Time)"]
+    ECU --> Secure_Boot["Secure Boot Loader"]
+    Secure_Boot --> Verify_Metadata["Metadata Signature Check"]
+    Verify_Metadata --> Verify_Version["Version Enforcement"]
+    Verify_Version --> Secure_Flash
 ```
 
----
-## Hardware‑Backed Rollback Prevention
-```mermaid
-graph TD
-    HWCounter["HW Monotonic Counter"]
-    OTAUpdate["OTA Update Module"]
-    SecureBoot["Secure Boot Process"]
-
-    OTAUpdate -- "Checks HWCounter" --> HWCounter
-    OTAUpdate -- "If version higher, increments HWCounter" --> HWCounter
-    SecureBoot -- "Validates firmware against HWCounter" --> HWCounter
-```
+- **Secure Flash** holds the current version number in a protected region.
+- **Monotonic Counter** (hardware) guarantees the value can only increase.
+- **OTP Fuse** can be used as an immutable baseline version.
+- The **Secure Boot Loader** re‑checks the version before handing control to the firmware.
 
 ---
-## Best‑Practice Checklist
-- **Always sign OTA metadata** with a strong asymmetric key pair.
-- **Include a monotonically increasing version number** (semantic or integer) in the manifest.
-- **Store the current version** in tamper‑resistant memory (secure flash, OTP fuses, or hardware counter).
-- **Verify the hash** of the received image before any version check.
-- **Enforce version checks** in both the OTA client and the secure bootloader.
-- **Use hardware monotonic counters** where available to make rollback impossible even after a full memory wipe.
-- **Audit and rotate signing keys** regularly; revoke compromised keys promptly.
-- **Log all update attempts** (including rejected ones) for forensic analysis.
+## Implementation Checklist
+- [ ] Provision OEM public key in immutable hardware during manufacturing.
+- [ ] Sign every OTA metadata package (version, hash, image identifier).
+- [ ] Store the current firmware version in a hardware‑backed monotonic counter or secure flash.
+- [ ] Enforce *strictly greater* version comparison in the bootloader and OTA client.
+- [ ] Reject any update where `incoming_version <= stored_version`.
+- [ ] Log all verification steps for auditability.
+- [ ] Align with standards such as **Uptane**, **AUTOSAR Secure Onboard Communication**, and **IoT Security Guidelines**.
 
 ---
 ## References
-- **Uptane** – Open‑source OTA security framework that mandates rollback protection.
-- **ISO/SAE 21434** – Road vehicles cybersecurity standard, Section on OTA update integrity.
-- **NIST SP 800‑193** – Platform firmware resilience guidelines.
-
----
-*By combining cryptographic guarantees with immutable version state, OTA systems can reliably prevent rollback attacks and maintain long‑term device integrity.*
+- **Uptane** – Open‑source OTA security framework that mandates version monotonicity.
+- **AUTOSAR Secure Onboard Communication (SecOC)** – Defines cryptographic protection for automotive messages.
+- **NIST SP 800‑193** – Guidelines for secure boot and firmware integrity.

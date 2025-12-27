@@ -92,11 +92,15 @@ const IconHelp = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="non
 const IconGithub = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>;
 const IconCheckCircle = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
 const IconXCircle = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>;
+const IconMenu = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>;
 
 // --- COMPONENTS ---
-const Navbar = ({ connected }: { connected: boolean }) => (
+const Navbar = ({ connected, onToggleSidebar }: { connected: boolean; onToggleSidebar: () => void }) => (
   <nav className="navbar">
     <div className="nav-left">
+      <button className="menu-btn mobile-only" onClick={onToggleSidebar}>
+        <IconMenu />
+      </button>
       <span className="nav-title">Clarion Studio</span>
       <span className="nav-divider">/</span>
       <span className="nav-breadcrumb"> </span>
@@ -132,6 +136,7 @@ function App() {
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [files, setFiles] = useState<FileList | null>(null);
   const [instruction, setInstruction] = useState<string>("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Advanced Settings
   const [temp, setTemp] = useState(0.2);
@@ -269,7 +274,7 @@ function App() {
   return (
     <div className="layout">
       {/* Sidebar */}
-      <div className="sidebar">
+      <div className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
           <div className="logo-area">
             <IconZap />
@@ -402,9 +407,12 @@ function App() {
       </div>
 
 
+      {/* Overlay for mobile sidebar */}
+      {isSidebarOpen && <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} />}
+
       {/* Main Content */}
       <div className="main">
-        <Navbar connected={!error && models.length > 0} />
+        <Navbar connected={!error && models.length > 0} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
         <div className="content-container split-layout">
 
