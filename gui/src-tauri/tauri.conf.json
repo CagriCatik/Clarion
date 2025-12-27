@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Clarion Studio",
+        "title": "",
         "width": 1200,
         "height": 800
       }
