@@ -1,80 +1,86 @@
-# OTA Update Confidentiality – Defense in Depth
+# OTA Update Protection Against Eavesdropping Attacks
 
-## Overview
-An over‑the‑air (OTA) update must remain confidential from the OEM backend all the way to the vehicle ECU.  Eavesdropping attacks are passive: an adversary can capture packets on cellular, Wi‑Fi, or any untrusted network, but cannot modify them.  To thwart such attacks we employ **multiple, complementary layers**:
+## 1. Overview
+Over‑the‑air (OTA) updates deliver new firmware, configuration files, and metadata to vehicles after they leave the factory. Because these updates travel over public or untrusted networks (cellular, Wi‑Fi, etc.), an eavesdropper can capture the traffic. The goal of the protection strategy is **confidentiality**: an attacker must never obtain usable firmware or cryptographic secrets, even if they can see every packet on the wire.
 
-1. **Transport security (TLS 1.2/1.3, optionally mutual TLS).**
-2. **Application‑layer payload encryption (AES‑256‑GCM or ChaCha20‑Poly1305).**
-3. **Secure hardware key protection on the vehicle (HSM/TPM/SHE).**
+## 2. Threat Model
+- **Passive interception**: attacker records all network traffic between the OEM backend and the vehicle.
+- **TLS termination**: intermediate nodes (CDNs, edge gateways) may terminate TLS, exposing plaintext beyond the TLS tunnel.
+- **Physical access to vehicle**: attacker may attempt to extract keys from the ECU.
 
-If any single layer is compromised, the remaining layers still protect the firmware and keys.
+## 3. Defense‑in‑Depth Layers
+| Layer | Primary Goal | Typical Mechanisms |
+|------|--------------|--------------------|
+| **1. Transport Security** | Protect data while in transit | TLS 1.2 / TLS 1.3, optional mutual TLS |
+| **2. Application‑Layer Payload Encryption** | Protect payload even if TLS is terminated | AES‑256‑GCM or ChaCha20‑Poly1305, asymmetric key wrap (ECDH / RSA) |
+| **3. Secure Key Storage** | Prevent key extraction on the vehicle | HSM, TPM, Secure Hardware Extension (SHE) |
+| **4. Runtime Integrity Checks** | Detect tampering after decryption | Signature verification, hash checks |
 
----
-
-## 1. Transport Security (TLS)
-- All OTA traffic travels over **HTTPS** using TLS 1.2 or TLS 1.3.
-- The server presents an X.509 certificate, authenticating the backend.
-- **Mutual TLS** can be enabled so the ECU also presents a certificate, preventing man‑in‑the‑middle attacks and ensuring the vehicle talks to the legitimate backend.
-- TLS encrypts the whole channel, so a passive observer only sees ciphertext blobs.
-
-> **Note:** Standards such as **UN R156** and **ISO 21434** assume TLS may be terminated at edge nodes or CDNs, so we cannot rely on TLS alone for confidentiality.
-
----
-
-## 2. Application‑Layer Payload Encryption
-1. The backend generates a **random symmetric key**.
-2. Firmware (or configuration files) is encrypted with this key using an **AEAD cipher** (AES‑256‑GCM or ChaCha20‑Poly1305) to provide confidentiality *and* integrity.
-3. The symmetric key is never sent in clear. It is wrapped with the target ECU’s **public key** (e.g., RSA‑OAEP or ECIES) or derived via an **ECDH** key‑exchange.
-4. Both the **encrypted firmware** and the **encrypted symmetric key** are sent over the TLS channel.
-
-Even if TLS is terminated, the payload remains encrypted and unusable without the ECU’s private key.
-
----
-
-## 3. Secure Hardware Key Protection on the Vehicle
-- The ECU’s **private key** resides inside a tamper‑resistant module (HSM, TPM, or Secure Hardware Extension).
-- Decryption of the wrapped symmetric key occurs **inside** this secure environment; the private key never leaves the hardware.
-- The symmetric key is then used to decrypt the firmware **inside** the same protected area, ensuring that plaintext firmware never appears in the main OS memory.
-- If any decryption or integrity check fails, the update is rejected.
-
----
-
-## End‑to‑End Flow
-1. **Backend** creates a symmetric key and encrypts the firmware.
-2. The symmetric key is wrapped with the ECU’s public key.
-3. Both encrypted artifacts travel over a **TLS** tunnel to the vehicle.
-4. The ECU receives the package, forwards the wrapped key to its **secure hardware**.
-5. Secure hardware unwraps the symmetric key, then decrypts the firmware.
-6. Upon successful verification, the ECU signals readiness for installation.
-
-The diagram below visualises this layered process.
+### 3.1 Layer Diagram
 
 ```mermaid
 graph TD
-    backend["Backend (OEM)"]
-    tls_tunnel["TLS 1.2/1.3\n(mTLS)"]
-    vehicle_ecu["Vehicle ECU"]
-    secure_hw["Secure HW\n(HSM/TPM)"]
-    sym_key_enc["Encrypted Symmetric Key"]
-    firmware_enc["Encrypted Firmware"]
-    sym_key["Symmetric Key (AES-256-GCM)"]
-    firmware["Firmware Image"]
-
-    backend --> tls_tunnel --> vehicle_ecu
-    backend -- "Encrypt Firmware with SymKey" --> firmware_enc
-    backend -- "Encrypt SymKey with ECU PubKey" --> sym_key_enc
-    vehicle_ecu -- "Receive package over TLS" --> sym_key_enc
-    vehicle_ecu -- "Receive package over TLS" --> firmware_enc
-    vehicle_ecu --> secure_hw
-    secure_hw -- "Decrypt SymKey (private key inside HW)" --> sym_key
-    sym_key -- "Decrypt Firmware" --> firmware
-    firmware -- "Validate & Install" --> vehicle_ecu
+    Layer1["Transport Security (TLS 1.2/1.3)"] --> Layer2["Application‑Layer Payload Encryption"]
+    Layer2 --> Layer3["Secure Hardware Key Storage (HSM/TPM/SHE)"]
+    Layer3 --> Layer4["Runtime Integrity Checks"]
 ```
 
----
+## 4. Transport Security (TLS)
+- **Encryption**: TLS encrypts the entire channel, preventing packet‑level readability.
+- **Authentication**: Server certificate validates the backend; mutual TLS adds client‑certificate verification, mitigating man‑in‑the‑middle attacks.
+- **Algorithm selection**: TLS 1.3 mandates AEAD ciphers (e.g., AES‑256‑GCM, ChaCha20‑Poly1305) providing confidentiality and integrity.
+- **Limitations**: Standards (UN R156, ISO 21434) acknowledge that TLS may be terminated at edge nodes, so payload must remain encrypted beyond the TLS tunnel.
 
-## Key Takeaways
-- **TLS** protects the communication pipe, but we assume it can be terminated.
-- **Application‑layer encryption** guarantees that the firmware remains confidential even after TLS termination.
-- **Secure hardware** ensures that private keys and plaintext firmware never leave a protected environment, thwarting extraction attacks.
-- The combination of these layers provides **defense‑in‑depth**, making eavesdropping ineffective against OTA updates.
+## 5. Application‑Layer Payload Encryption
+1. **Generate a random symmetric key** (`K_sym`).
+2. **Encrypt the firmware image** with `K_sym` using an AEAD cipher (AES‑256‑GCM or ChaCha20‑Poly1305). The output is an *encrypted firmware blob* plus an authentication tag.
+3. **Wrap `K_sym`** with the target ECU’s public key (RSA‑OAEP, ECIES) or derive it via an ECDH exchange. The result is an *encrypted symmetric key*.
+4. **Transmit** both encrypted artifacts over the TLS channel.
+
+### 5.1 Payload Encryption Diagram
+
+```mermaid
+graph TD
+    Backend["Backend Service"] --> TLS_Conn["TLS Channel"]
+    TLS_Conn --> ECU["Vehicle ECU"]
+    Backend --> Sym_Key_Gen["Generate Symmetric Key"]
+    Sym_Key_Gen --> Firmware_Enc["Encrypt Firmware (AES-256-GCM)"]
+    Firmware_Enc --> Encrypted_Firmware["Encrypted Firmware Blob"]
+    Backend --> PubKey_Enc["Encrypt Symmetric Key with ECU Public Key"]
+    PubKey_Enc --> Encrypted_Key["Encrypted Symmetric Key"]
+    Encrypted_Firmware --> TLS_Conn
+    Encrypted_Key --> TLS_Conn
+    ECU --> Secure_HW["Secure Hardware (HSM/TPM)"]
+    Encrypted_Key --> Secure_HW
+    Secure_HW --> Decrypted_Key["Decrypt Symmetric Key"]
+    Decrypted_Key --> Firmware_Dec["Decrypt Firmware"]
+    Firmware_Dec --> Firmware_Plain["Plain Firmware"]
+    Firmware_Plain --> Install["Install Firmware"]
+```
+
+## 6. Secure Key Storage on the Vehicle
+- **Hardware security modules (HSM)**, **Trusted Platform Modules (TPM)**, or **Secure Hardware Extensions (SHE)** store the ECU private key.
+- **Operations inside the secure enclave**: Decryption of the wrapped symmetric key and the AEAD verification happen inside the hardware, ensuring the private key and plaintext never appear in the main OS memory.
+- **Resistance to attacks**: These modules are designed to thwart side‑channel, fault injection, and invasive probing attempts.
+
+## 7. End‑to‑End OTA Flow
+1. Backend creates `K_sym` and encrypts the firmware.
+2. Backend encrypts `K_sym` with the ECU’s public key.
+3. Both encrypted blobs are sent over TLS.
+4. ECU receives the package, forwards the encrypted key to its secure hardware.
+5. Secure hardware decrypts `K_sym`.
+6. ECU uses `K_sym` to decrypt and authenticate the firmware.
+7. If verification succeeds, the ECU signals readiness and proceeds with installation; otherwise, the update is rejected.
+
+## 8. Security Guarantees
+- **Confidentiality**: All data in transit is encrypted by TLS; the payload remains encrypted even if TLS is terminated.
+- **Integrity & Authenticity**: AEAD ciphers provide tamper detection; mutual TLS authenticates the server and optionally the client.
+- **Key Protection**: Private keys never leave secure hardware, mitigating extraction attacks.
+- **Resilience to Passive Attacks**: An eavesdropper can only capture ciphertext and authentication tags, which are useless without the protected keys.
+
+## 9. References
+- **UN Regulation No. 156** – Cybersecurity and Software Updates.
+- **ISO/SAE 21434** – Road Vehicles – Cybersecurity Engineering.
+- **TLS 1.3 RFC 8446** – The Transport Layer Security (TLS) Protocol Version 1.3.
+- **NIST SP 800‑38D** – Recommendation for Block Cipher Modes of Operation: Galois/Counter Mode (GCM).
+- **NIST SP 800‑56A Rev. 3** – Key‑Establishment Mechanisms.

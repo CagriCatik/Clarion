@@ -1,6 +1,6 @@
 <h1 align="center">CLARION</h1>
 
-<h3 align="center">Deterministic Bio-Scientific and Technical Documentation Generator</h3>
+<h3 align="center">Deterministic Scientific and Technical Documentation Generator</h3>
 
 <p align="center">
   <img src="image/ui.png" alt="UI" width="600">
@@ -21,6 +21,7 @@
 [![Docker](https://img.shields.io/badge/containerized-Docker-2496ED.svg)](https://www.docker.com/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg)](#)
 [![Status](https://img.shields.io/badge/status-active--development-yellow.svg)](#)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/CagriCatik/Clarion)
 </h4>
 
 --- 
@@ -30,9 +31,6 @@ Clarion is an AI-powered system for converting raw transcripts and unstructured 
 - **Backend**: Python, FastAPI, Pydantic, httpx
 - **Frontend**: TypeScript, React, Vite, Tauri
 - **Orchestration**: concurrently or Docker Compose
-
-
-
 
 ---
 

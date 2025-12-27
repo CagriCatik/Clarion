@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import mermaid from "mermaid";
@@ -28,26 +28,49 @@ mermaid.initialize({
 });
 
 // Mermaid Component
+// Mermaid Component
 const Mermaid = ({ chart }: { chart: string }) => {
   const [svg, setSvg] = useState<string>("");
+  // Use a stable ID for this component instance
   const idRef = useRef(`mermaid-${Math.random().toString(36).substr(2, 9)}`);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!chart) return;
 
+    let mounted = true;
     const renderChart = async () => {
       try {
+        console.log("Rendering Mermaid chart:", idRef.current);
+        // Reset SVG while rendering to avoid stale state
+        // setSvg(""); 
         const { svg } = await mermaid.render(idRef.current, chart);
-        setSvg(svg);
-      } catch (e) {
+        if (mounted) {
+          setSvg(svg);
+        }
+      } catch (e: any) {
         console.error("Mermaid render failed:", e);
-        setSvg(`<pre class="error">Failed to render diagram</pre>`);
+        if (mounted) {
+          setSvg(`<div class="error" style="color: red; padding: 10px; border: 1px solid red;">
+            Failed to render diagram: ${e.message || "Unknown error"}
+            <pre style="font-size: 0.7em; overflow: auto; max-height: 100px;">${chart}</pre>
+          </div>`);
+        }
       }
     };
     renderChart();
+
+    return () => {
+      mounted = false;
+    };
   }, [chart]);
 
-  return <div className="mermaid-diagram" dangerouslySetInnerHTML={{ __html: svg }} />;
+  return (
+    <div
+      className="mermaid-wrapper"
+      style={{ margin: "1rem 0", background: "transparent", minHeight: "50px" }}
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
 };
 
 // --- ICONS ---

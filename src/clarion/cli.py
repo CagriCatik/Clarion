@@ -8,7 +8,7 @@ from clarion.schemas import InstructionConfig
 from clarion.pipeline import run_pipeline
 from clarion.renderer import render_markdown
 from clarion.providers import OllamaProvider
-from clarion.prompts import Stage
+
 
 import sys
 # ... imports
