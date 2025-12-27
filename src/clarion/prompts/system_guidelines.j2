@@ -1,9 +1,9 @@
 MERMAID DIAGRAM RULES (STRICT SYNTAX ENFORCEMENT):
 
-1. **IDs (Node Identifiers)**:
    - IDs must be alphanumeric or underscores ONLY (e.g., `Node_A`, `Step_1`).
    - IDs must NOT start with a digit. If needed, prepend an underscore (e.g., `_1_Start`).
    - IDs must NOT contain spaces or special characters.
+   - **FORBIDDEN IDs**: Do NOT use reserved keywords like `end`, `start`, `subgraph`, `class`, `style`. Use `Process_End`, `Start_Node` instead.
 
 2. **Labels (Text Displayed)**:
    - ALL labels (Nodes, Edges) containing spaces or special characters MUST be wrapped in double quotes.
