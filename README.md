@@ -34,6 +34,21 @@ Clarion is an AI-powered system for converting raw transcripts and unstructured 
 
 ---
 
+## Demo
+
+Clarion comes with sample inputs to demonstrate its capabilities.
+
+**[Input](inputs/01_protection-eavesdrop.md)**
+> A raw, unstructured transcript discussing OTA security mechanisms, including transport security, payload encryption, and hardware modules.
+
+**[Output](outputs/01_protection-eavesdrop_doc.md)**
+> A fully structured technical document containing:
+> - **Introduction & Principles** (extracted from raw text)
+> - **Mermaid Diagrams** (visualizing the key flow)
+> - **Technical Specifications** (organized hierarchically)
+
+---
+
 ## Core Capabilities
 
 ### Deterministic Expert Pipeline
@@ -106,6 +121,7 @@ On Windows, a single script is provided:
 ```
 
 This launches the FastAPI backend and the React frontend together using `concurrently`.
+
 
 ---
 

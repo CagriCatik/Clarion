@@ -99,7 +99,7 @@ const Navbar = ({ connected }: { connected: boolean }) => (
     <div className="nav-left">
       <span className="nav-title">Clarion Studio</span>
       <span className="nav-divider">/</span>
-      <span className="nav-breadcrumb">Untitled Project</span>
+      <span className="nav-breadcrumb"> </span>
     </div>
     <div className="nav-right">
       <div className={`status-indicator ${connected ? 'connected' : 'disconnected'}`}>
