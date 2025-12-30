@@ -120,8 +120,12 @@ const Navbar = ({ connected, onToggleSidebar }: { connected: boolean; onToggleSi
 const Footer = ({ version, onOpenFolder }: { version: string, onOpenFolder: () => void }) => (
   <footer className="footer">
     <div className="footer-left">
+      <img src="/icon.png" alt="Clarion" className="footer-logo-img" />
+      <span className="footer-item" style={{ marginLeft: "8px", fontWeight: 600 }}>Clarion AI</span>
+      <div className="footer-divider"></div>
+      <span className="footer-item">© 2024</span>
+      <div className="footer-divider"></div>
       <span className="footer-item">v{version}</span>
-      <span className="footer-item">© 2025 Clarion AI</span>
     </div>
     <div className="footer-right">
       <button className="footer-btn" onClick={onOpenFolder}>
@@ -134,7 +138,7 @@ const Footer = ({ version, onOpenFolder }: { version: string, onOpenFolder: () =
 function App() {
   const [models, setModels] = useState<string[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>("");
-  const [files, setFiles] = useState<FileList | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [instruction, setInstruction] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -142,6 +146,7 @@ function App() {
   const [temp, setTemp] = useState(0.2);
   const [topP, setTopP] = useState(0.9);
   const [numCtx, setNumCtx] = useState(8192);
+  const [numPredict, setNumPredict] = useState(2048);
   // defaults for wordBudget/overlap (hidden)
   const wordBudget = 2000;
   const overlap = 2;
@@ -184,7 +189,7 @@ function App() {
   }, []);
 
   const handleGenerate = async () => {
-    if (!files || files.length === 0) {
+    if (files.length === 0) {
       setError("Please select at least one file.");
       return;
     }
@@ -207,6 +212,7 @@ function App() {
     formData.append("overlap", overlap.toString());
 
     // New params
+    formData.append("num_predict", numPredict.toString());
     formData.append("presence_penalty", presencePenalty.toString());
     formData.append("frequency_penalty", frequencyPenalty.toString());
     formData.append("repeat_penalty", repeatPenalty.toString());
@@ -228,26 +234,42 @@ function App() {
 
       if (!reader) throw new Error("No response body");
 
+      let buffer = "";
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n\n");
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
 
-        for (const line of lines) {
-          if (line.startsWith("event: status")) {
-            const data = line.split("data: ")[1];
-            if (data) setStatusLog(prev => [...prev, data.trim()]);
-          } else if (line.startsWith("event: error")) {
-            const data = line.split("data: ")[1];
-            if (data) setError(data);
-          } else if (line.startsWith("event: result")) {
-            const data = line.split("data: ")[1];
-            if (data) {
-              const parsed = JSON.parse(data);
-              setResults(parsed.results || []);
-              setActiveTab(0);
+        for (const part of parts) {
+          if (!part.trim()) continue;
+
+          if (part.startsWith("event: status")) {
+            const prefix = "event: status\ndata: ";
+            if (part.startsWith(prefix)) {
+              const data = part.substring(prefix.length);
+              setStatusLog(prev => [...prev, data.trim()]);
+            }
+          } else if (part.startsWith("event: error")) {
+            const prefix = "event: error\ndata: ";
+            if (part.startsWith(prefix)) {
+              const data = part.substring(prefix.length);
+              setError(data);
+            }
+          } else if (part.startsWith("event: result")) {
+            const prefix = "event: result\ndata: ";
+            if (part.startsWith(prefix)) {
+              const data = part.substring(prefix.length);
+              try {
+                const parsed = JSON.parse(data);
+                setResults(parsed.results || []);
+                setActiveTab(0);
+              } catch (e) {
+                console.error("JSON parse error", e);
+                setStatusLog(prev => [...prev, "Error parsing result JSON."]);
+              }
             }
           }
         }
@@ -271,13 +293,16 @@ function App() {
     }
   };
 
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <div className="layout">
       {/* Sidebar */}
       <div className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
           <div className="logo-area">
-            <img src="/icon.png" alt="Clarion Logo" style={{ width: 24, height: 24, marginRight: 8 }} />
             <h1>CLARION</h1>
           </div>
           <span className="version">v1.2</span>
@@ -307,6 +332,28 @@ function App() {
                 <option value="16384">16k (Huge)</option>
                 <option value="32768">32k (Max)</option>
               </select>
+            </div>
+          </div>
+
+          <div className="sidebar-section">
+            <label>
+              <div className="icon-label">
+                <IconActivity /> Max Output Tokens
+                <span className="tooltip-wrapper" data-tooltip="Maximum number of tokens to generate. -1 = Infinite/Default.">
+                  <div className="icon-help"><IconHelp /></div>
+                </span>
+              </div>
+            </label>
+            <div className="range-wrap">
+              <input
+                type="range"
+                min="-1"
+                max="8192"
+                step="1"
+                value={numPredict}
+                onChange={(e) => setNumPredict(parseInt(e.target.value))}
+              />
+              <span className="range-val">{numPredict === -1 ? "Max" : numPredict}</span>
             </div>
           </div>
 
@@ -483,18 +530,39 @@ function App() {
                     className="file-upload-input"
                     accept=".md,.txt"
                     multiple
-                    onChange={(e) => setFiles(e.target.files)}
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        const newFiles = Array.from(e.target.files);
+                        setFiles((prev) => {
+                          const existingNames = new Set(prev.map(f => f.name));
+                          const uniqueNew = newFiles.filter(f => !existingNames.has(f.name));
+                          return [...prev, ...uniqueNew];
+                        });
+                        e.target.value = ""; // Reset to allow re-selection
+                      }
+                    }}
                     disabled={isProcessing}
                   />
                   <label htmlFor="file-upload" className="file-upload-label compact-label">
                     <IconUpload />
-                    <span>{files && files.length > 0 ? `${files.length} selected` : "Browse files..."}</span>
+                    <span>{files.length > 0 ? `${files.length} selected` : "Browse files..."}</span>
                   </label>
                 </div>
-                {files && files.length > 0 && (
+                {files.length > 0 && (
                   <ul className="file-list compact-list">
-                    {Array.from(files).map((f, i) => (
-                      <li key={i}><IconFile /> <span className="fname">{f.name}</span></li>
+                    {files.map((f, i) => (
+                      <li key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden" }}>
+                          <IconFile /> <span className="fname">{f.name}</span>
+                        </div>
+                        <button
+                          onClick={() => removeFile(i)}
+                          style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer", padding: "4px", display: "flex" }}
+                          title="Remove"
+                        >
+                          <IconXCircle />
+                        </button>
+                      </li>
                     ))}
                   </ul>
                 )}
@@ -513,7 +581,7 @@ function App() {
               </div>
 
               <div className="action-row compact-action">
-                <button className="primary-btn compact-btn full-width" onClick={handleGenerate} disabled={isProcessing || !files}>
+                <button className="primary-btn compact-btn full-width" onClick={handleGenerate} disabled={isProcessing || files.length === 0}>
                   {isProcessing ? "Processing..." : <><IconPlay /> Run Pipeline</>}
                 </button>
                 {error && <div className="error-msg compact-error">{error}</div>}

@@ -352,6 +352,23 @@ hr {
   opacity: 0.8;
 }
 
+.footer-logo-img {
+  height: 24px; /* Adjust based on look */
+  width: auto;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+.footer-logo-img:hover {
+  opacity: 1;
+}
+
+.footer-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
 .footer-btn {
   background: transparent;
   border: none;

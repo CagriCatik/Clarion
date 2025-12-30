@@ -1,34 +1,5 @@
-MERMAID DIAGRAM RULES (STRICT SYNTAX ENFORCEMENT):
+{% include 'components/persona_writer.j2' %}
 
-   - IDs must be alphanumeric or underscores ONLY (e.g., `Node_A`, `Step_1`).
-   - IDs must NOT start with a digit. If needed, prepend an underscore (e.g., `_1_Start`).
-   - IDs must NOT contain spaces or special characters.
-   - **FORBIDDEN IDs**: Do NOT use reserved keywords like `end`, `start`, `subgraph`, `class`, `style`. Use `Process_End`, `Start_Node` instead.
+---
 
-2. **Labels (Text Displayed)**:
-   - ALL labels (Nodes, Edges) containing spaces or special characters MUST be wrapped in double quotes.
-   - Inner double quotes must be escaped: `"` -> `\"`.
-   - Newlines in labels should be replaced with space or `<br>`.
-
-3. **Edges (Connections)**:
-   - **CRITICAL**: Use the string syntax `A -- "Label" --> B`.
-   - **FORBIDDEN**: Do NOT use the pipe syntax `|Label|`. It causes parse errors.
-   - ❌ BAD: `A --|"Text"|--> B` or `A -->|Text| B`
-   - ✅ GOOD: `A -- "Text" --> B`
-   - NEVER mix pipes and arrows.
-   - Unlabeled: `A --> B`
-   - Dotted: `A -. "Label" .-> B`
-   - Thick: `A == "Label" ==> B`
-
-4. **Shapes**:
-   - Rect: `id["Text"]`
-   - Round: `id("Text")`
-   - Database: `id[("Text")]`
-   - Subroutine: `id[["Text"]]`
-   - Rhombus: `id{"Text"}`
-   - Asymmetric: `id>"Text"]`
-   - Hexagon: `id{{ "Text" }}`
-   - Parallelogram: `id[/"Text"/]`
-   - Trapezoid: `id[/"Text"\]`
-
-Start diagrams with `graph TD` or `sequenceDiagram`.
+{% include 'components/rules_mermaid.j2' %}

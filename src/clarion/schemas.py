@@ -8,6 +8,7 @@ class GenerationConfig(BaseModel):
     temperature: float = 0.2
     top_p: float = 0.9
     num_ctx: int = 4096
+    num_predict: int = 2048
     presence_penalty: float = 0.0
     frequency_penalty: float = 0.0
     repeat_penalty: float = 1.1

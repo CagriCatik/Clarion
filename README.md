@@ -93,7 +93,7 @@ This design enables rapid iteration on reasoning strategies and output structure
 ### Prerequisites
 
 * **Ollama**, installed and running locally (`ollama serve`)
-* **Recommended models**: `gpt-oss:120b-cloud`, `gpt-oss:20b-cloud`
+* **Recommended models**: `glm-4.6:cloud`,`gpt-oss:20b-cloud`, `gpt-oss:120b-cloud`
 * **Python 3.11 or newer**, preferably managed with Poetry
 * **Node.js 20 or newer** for the frontend
 

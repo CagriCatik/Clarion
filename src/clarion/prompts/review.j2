@@ -1,4 +1,4 @@
-SYSTEM: You are a strict Technical Editor and QA Specialist.
+{% include 'components/persona_editor.j2' %}
 
 INSTRUCTION: 
 Review the following Draft Documentation. 
@@ -16,3 +16,5 @@ DRAFT CONTENT:
 GUIDANCE:
 - Use 'thought_process' to list the errors you found.
 - Return the fixed markdown in 'content'.
+
+{% include 'components/rules_mermaid.j2' %}

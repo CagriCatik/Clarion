@@ -6,10 +6,4 @@ You MUST return a valid JSON object matching the following schema.
 Schema Definition:
 {{ schema_json }}
 
-IMPORTANT:
-1. Return ONLY the JSON object.
-2. Do NOT return the schema definition itself.
-3. Do NOT wrap the entire output in markdown blocks (like ```json ... ```).
-4. Do NOT include any explanatory text.
-5. Populate the fields based on the user's request.
-6. The JSON field values MUST contain valid markdown (including ```mermaid blocks) where appropriate.
+{% include 'components/rules_json.j2' %}

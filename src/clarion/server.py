@@ -46,7 +46,8 @@ async def generate_doc(
     presence_penalty: float = Form(0.0),
     frequency_penalty: float = Form(0.0),
     repeat_penalty: float = Form(1.1),
-    top_k: int = Form(40)
+    top_k: int = Form(40),
+    num_predict: int = Form(2048)
 ):
     """
     Process uploaded markdown files with server-sent events for progress.
@@ -92,6 +93,7 @@ async def generate_doc(
                 temperature=temperature,
                 top_p=top_p,
                 num_ctx=num_ctx,
+                num_predict=num_predict,
                 presence_penalty=presence_penalty,
                 frequency_penalty=frequency_penalty,
                 repeat_penalty=repeat_penalty,
