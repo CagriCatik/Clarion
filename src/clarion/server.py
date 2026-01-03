@@ -13,9 +13,18 @@ from clarion.pipeline import run_pipeline
 from clarion.providers import OllamaProvider
 from clarion.renderer import render_markdown
 
+import psutil
+try:
+    import pynvml
+    pynvml.nvmlInit()
+    nvml_initialized = True
+except Exception:
+    nvml_initialized = False
+
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import asyncio
+import time
 
 app = FastAPI(title="Clarion API", version="0.1.0")
 
@@ -47,7 +56,8 @@ async def generate_doc(
     frequency_penalty: float = Form(0.0),
     repeat_penalty: float = Form(1.1),
     top_k: int = Form(40),
-    num_predict: int = Form(2048)
+    num_predict: int = Form(2048),
+    fast_mode: bool = Form(False)
 ):
     """
     Process uploaded markdown files with server-sent events for progress.
@@ -82,6 +92,7 @@ async def generate_doc(
 
     # 4. Define generator that uses these saved files
     async def event_generator():
+        start_time = time.time()
         try:
             config = InstructionConfig(
                 user_prompt_files=saved_prompt_files,
@@ -97,7 +108,8 @@ async def generate_doc(
                 presence_penalty=presence_penalty,
                 frequency_penalty=frequency_penalty,
                 repeat_penalty=repeat_penalty,
-                top_k=top_k
+                top_k=top_k,
+                fast_mode=fast_mode
             )
             
             provider = OllamaProvider(model_name=model)
@@ -153,8 +165,12 @@ async def generate_doc(
                     results.append(err_data)
                     yield f"event: error\ndata: Error processing {filename}: {str(e)}\n\n"
 
+            end_time = time.time()
+            duration = end_time - start_time
+            yield f"event: status\ndata: Total generation time: {duration:.2f} seconds\n\n"
+
             # Final result
-            yield f"event: result\ndata: {json.dumps({'results': results})}\n\n"
+            yield f"event: result\ndata: {json.dumps({'results': results, 'duration': duration})}\n\n"
             yield "event: complete\ndata: done\n\n"
             
         finally:
@@ -175,6 +191,80 @@ async def list_models():
 @app.get("/v1/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/v1/metrics")
+async def get_metrics():
+    """
+    Returns CPU, RAM, and GPU usage metrics.
+    """
+    cpu_usage = psutil.cpu_percent()
+    ram_usage = psutil.virtual_memory().percent
+    
+    gpu_usage = None
+    if nvml_initialized:
+        try:
+            handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+            info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+            # Memory utilized / memory total
+            gpu_usage = (info.used / info.total) * 100
+        except Exception:
+            pass
+            
+    return {
+        "cpu": cpu_usage,
+        "ram": ram_usage,
+        "gpu": gpu_usage
+    }
+
+@app.get("/v1/outputs")
+async def list_outputs():
+    """
+    List all generated markdown documents.
+    """
+    output_dir = Path("outputs")
+    if not output_dir.exists():
+        return {"outputs": []}
+    
+    files = [f.name for f in output_dir.glob("*.md")]
+    # Sort by modification time (newest first)
+    files.sort(key=lambda f: (output_dir / f).stat().st_mtime, reverse=True)
+    return {"outputs": files}
+
+@app.get("/v1/outputs/{filename}")
+async def get_output(filename: str):
+    """
+    Get the content of a specific markdown document.
+    """
+    output_path = Path("outputs") / filename
+    if not output_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    try:
+        with open(output_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return {"filename": filename, "markdown": content}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class SaveOutputRequest(BaseModel):
+    markdown: str
+
+@app.post("/v1/outputs/{filename}")
+async def save_output(filename: str, request: SaveOutputRequest):
+    """
+    Save edited markdown content.
+    """
+    output_path = Path("outputs") / filename
+    if not output_path.exists():
+        # Allow creating new files? For now, only existing
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    try:
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(request.markdown)
+        return {"status": "ok"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/v1/open_outputs")
 def open_outputs():

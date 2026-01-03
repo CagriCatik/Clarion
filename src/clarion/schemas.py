@@ -13,6 +13,7 @@ class GenerationConfig(BaseModel):
     frequency_penalty: float = 0.0
     repeat_penalty: float = 1.1
     top_k: int = 40
+    fast_mode: bool = False
     
 class InstructionConfig(BaseModel):
     """

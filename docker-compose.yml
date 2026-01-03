@@ -1,39 +1,30 @@
-version: '3.8'
-
 services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.backend
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ compute, utility, gpu ]
     volumes:
-      # Map source for live reloading
-      - ./src:/app/src
-      # Map inputs/outputs so they verify on host
-      - ./inputs:/app/inputs
       - ./outputs:/app/outputs
-    environment:
-      # Access host machine's Ollama
-      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - ./inputs:/app/inputs
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    restart: always
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
 
   frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
+      context: ./gui
+      dockerfile: Dockerfile
     ports:
-      - "1420:1420"
-    volumes:
-      # Map src for live reloading
-      - ./gui/src:/app/src
-      # Prevent node_modules masking
-      - /app/node_modules
-    environment:
-      # Frontend browser calls hit localhost:8000 (Forwarded by Docker to backend)
-      - VITE_API_URL=http://localhost:8000
+      - "80:80"
     depends_on:
       - backend
-    restart: always

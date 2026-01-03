@@ -71,4 +71,24 @@ def sanitize_mermaid(markdown: str) -> str:
     return block_pattern.sub(fix_block, markdown)
 
 def render_markdown(doc: FlexDoc) -> str:
-    return sanitize_mermaid(doc.content)
+    """
+    Renders FlexDoc content to markdown.
+    Includes a failsafe to unwrap raw JSON if it was accidentally saved as content.
+    """
+    content = doc.content.strip()
+    
+    # Failsafe: If content is a raw JSON string, try to extract the inner content
+    if content.startswith('{') and content.endswith('}'):
+        try:
+            import json
+            data = json.loads(content, strict=False)
+            if isinstance(data, dict):
+                # Check various common content keys
+                for key in ["content", "text", "markdown", "output"]:
+                    if key in data and isinstance(data[key], str):
+                        content = data[key]
+                        break
+        except:
+            pass
+            
+    return sanitize_mermaid(content)

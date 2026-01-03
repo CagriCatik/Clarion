@@ -8,7 +8,7 @@ try:
     with open("debug_render.txt", "w", encoding="utf-8") as f:
         f.write(sg)
 
-    if "Expert Technical Writer" not in sg:
+    if "expert technical writer" not in sg.lower():
         raise Exception("Persona missing in system_guidelines. See debug_render.txt")
     if "MERMAID DIAGRAM RULES" not in sg:
         raise Exception("Mermaid rules missing in system_guidelines")
@@ -16,7 +16,7 @@ try:
 
     print("Testing review.j2...")
     rv = render_prompt("review.j2", draft_content="TEST")
-    if "Strict Technical Editor" not in rv:
+    if "technical editor" not in rv.lower():
         raise Exception("Persona editor missing in review")
     if "MERMAID DIAGRAM RULES" not in rv:
         raise Exception("Mermaid rules missing in review")

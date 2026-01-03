@@ -1,0 +1,17 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.venv
+.env
+.git
+.gitignore
+.dockerignore
+node_modules
+gui/dist
+gui/node_modules
+outputs/*
+!outputs/.gitkeep
+inputs/*
+!inputs/.gitkeep
+.poetry
