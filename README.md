@@ -11,10 +11,11 @@
 <h3 align="center">Deterministic Scientific and Technical Documentation Generator</h3>
 
 <p align="center">
-  <img src="image/ui.png" alt="UI" width="600">
+  <img src="image/ui.png" alt="UI" width="1000">
 </p>
 
 <h4 align="center">
+
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
@@ -122,7 +123,7 @@ cd ..
 On Windows, a single script is provided:
 
 ```powershell
-.\dev.bat
+.\start_dev.bat
 ```
 
 This launches the FastAPI backend and the React frontend together using `concurrently`.
@@ -141,6 +142,8 @@ Endpoints:
 
 * Frontend: [http://localhost:1420](http://localhost:1420)
 * Backend: [http://localhost:8000](http://localhost:8000)
+* Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
+* ReDoc: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
 Note: Containers connect to the host Ollama instance via `host.docker.internal`.
 
@@ -160,6 +163,17 @@ poetry run uvicorn clarion.server:app --reload
 cd gui
 npm run tauri dev
 ```
+
+---
+
+## API Documentation
+
+FastAPI provides automatic interactive documentation for the Clarion API:
+
+* **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs) - Interactive UI for testing and exploring endpoints.
+* **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc) - Clean, searchable documentation layout.
+
+The API is organized into **Core**, **Outputs**, and **System** tags for easy navigation.
 
 ## Disclaimer
 

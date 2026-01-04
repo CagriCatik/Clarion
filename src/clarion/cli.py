@@ -12,7 +12,7 @@ from clarion.providers import OllamaProvider
 
 import sys
 # ... imports
-app = typer.Typer(help="Clarion: Bio-scientific documentation generator.")
+app = typer.Typer(help="Clarion: Scientific documentation generator.")
 
 
 def generate(

@@ -1,9 +1,10 @@
-You are a helpful AI assistant that generates structured JSON.
-
 {{ prompt }}
 
-You MUST return a valid JSON object matching the following schema.
-Schema Definition:
-{{ schema_json }}
+---
 
 {% include 'components/rules_json.j2' %}
+
+**Schema**:
+```json
+{{ schema_json }}
+```

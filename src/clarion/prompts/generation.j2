@@ -1,10 +1,37 @@
-INSTRUCTION: {{ instruction }}
+{% include 'components/persona_writer.j2' %}
 
+---
+
+## Your Task
+Generate technical documentation based on the provided context.
+
+### Instructions
+2. **Generate Content** - Write the final markdown in the `content` field.
+   - **CRITICAL**: Your `thought_process` field MUST NOT BE EMPTY. 
+   - **MANDATORY**: You MUST use at least three of these planning keywords in your `thought_process`: **structure**, **explain**, **diagram**, **section**, **overview**.
+   - **NEGATIVE CONSTRAINT**: Do NOT list syntax rules, forbidden keywords, or repetitive checklists in your thought process. Focus on content planning.
+
+### Context
+```
+{{ context }}
+```
+
+### User Instruction
+```
+{{ instruction }}
+```
+
+### Guidelines
 {{ system_guidelines }}
 
-GUIDANCE:
-- First, use the 'thought_process' field to plan the document structure and analyze the context.
-- Then, write the final Markdown in the 'content' field.
+---
 
-CONTEXT:
-{{ context }}
+**Output Requirements**:
+- Generate **comprehensive, detailed** technical documentation.
+- **Length Target**: Aim for approximately **{{ word_budget }} words** to ensure full coverage.
+- Expand on concepts with thorough explanations and deep technical dives.
+- Include relevant technical details, examples, and context.
+- Aim for complete coverage of the topic, not just summaries.
+- Use your full allowed output budget (up to {{ num_predict }} tokens) to be as detailed as possible.
+
+**Remember**: Each concept explained once. No redundancy, but maximum depth. Evidence-based only.

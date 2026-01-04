@@ -1,0 +1,55 @@
+{% include 'components/persona_writer.j2' %}
+
+---
+
+## Your Task
+The content below was generated from **multiple independent chunks** and naively concatenated. It contains significant duplication.
+
+### Common Problems
+- Multiple `# Title` headers
+- Repeated "Overview" sections
+- Same concepts explained 2-3 times
+- Redundant diagrams
+
+### Consolidation Steps
+
+1. **Merge Duplicate Headers**
+   - You will see multiple headers with similar topics.
+   - Choose THE MOST SPECIFIC AND RELEVANT titles.
+   - Merge complementary content from different chunks into one logical section rather than deleting.
+
+2. **Consolidate Introductions**
+   - Combine all "Overview", "Introduction", "Purpose" sections
+   - Create ONE comprehensive opening
+
+3. **Remove Redundant Content**
+   - If same concept appears multiple times, keep the MOST COMPLETE version
+   - Delete redundant explanations
+
+4. **Preserve Technical Details**
+   - **MANDATORY**: Do NOT lose any information.
+   - If sections have complementary details, merge them into a deeper, more comprehensive explanation.
+   - Aim for a final document that is thorough and detailed.
+
+5. **Deduplicate Diagrams**
+   - If multiple similar Mermaid diagrams exist, keep the most comprehensive
+   - Remove redundant visualizations
+
+6. **Fix Structure**
+   - Ensure proper flow: Overview → Architecture → Details → Examples
+   - Verify logical section progression
+
+### Merged content to consolidate
+```markdown
+{{ merged_content }}
+```
+
+---
+
+**Critical**: Output a SINGLE unified document. NO duplicate headings or sections. **DO NOT SUMMARIZE** unless necessary; instead, merge all unique details. Your target length is roughly **{{ word_budget }} words** within a maximum budget of **{{ num_predict }} tokens**.
+
+### Guidelines for Your Use
+> [!IMPORTANT]
+> These are technical standards you MUST enforce. Do NOT include these rules, checklists, or any text from this section in your output.
+
+{{ system_guidelines }}

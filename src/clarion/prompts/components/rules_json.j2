@@ -1,14 +1,99 @@
-IMPORTANT:
-1. Return ONLY the JSON object.
-2. Do NOT return the schema definition itself.
-3. Do NOT wrap the entire output in markdown blocks (like ```json ... ```).
-4. Do NOT include any explanatory text.
-5. Populate the fields based on the user's request.
-6. The JSON field values MUST contain valid markdown (including ```mermaid blocks) where appropriate.
-7. You MUST provide NON-EMPTY content for the 'content' field.
+# JSON Output Rules
 
-EXAMPLE OUTPUT FORMAT:
+You MUST return valid JSON matching the specified schema.
+
+## Critical Rules
+
+1. **JSON Only** - Your ENTIRE response must be a single JSON object
+   - Start with `{`
+   - End with `}`
+   - Nothing before or after
+
+2. **No Markdown Wrapping** - Do NOT wrap in code blocks
+   - ❌ BAD: ` ```json\n{...}\n``` `
+   - ✅ GOOD: `{...}`
+
+3. **No Explanatory Text** - Do NOT add commentary
+   - ❌ BAD: `Here is the JSON:\n{...}`
+   - ✅ GOOD: `{...}`
+
+4. **No Schema Echo** - Return an INSTANCE, not the schema definition
+   - ❌ BAD: `{"type": "object", "properties": {...}}`
+   - ✅ GOOD: `{"thought_process": "...", "content": "..."}`
+
+5. **No Direct Markdown** - Put ALL markdown inside the `content` field
+   - ❌ BAD: Output markdown directly, then output JSON
+   - ✅ GOOD: `{"content": "# Title\n\nMarkdown here..."}`
+
+6. **Non-Empty Content** - The `content` field MUST have substantive text
+   - ❌ BAD: `{"content": ""}`
+   - ✅ GOOD: `{"content": "# Documentation\n\nDetailed content..."}`
+
+7. **Complete JSON Object** - Start with `{`, end with `}`
+   - No partial objects
+   - No truncated responses
+
+## Field Requirements
+
+### `thought_process` (optional)
+Use this to plan your approach before writing content.
+
+Example:
+```json
 {
-  "thought_process": "I will first summarize the security measures then detail the implementation steps.",
-  "content": "# Security Summary\n\nThis document describes..."
+  "thought_process": "I will structure this as: Overview → Architecture → Implementation → Examples. I'll use a sequence diagram to show the request/response flow."
 }
+```
+
+### `content` (required)
+The main markdown documentation. Must contain:
+- Valid markdown syntax
+- Proper headers
+- Complete paragraphs
+- Mermaid diagrams (if needed) using ```mermaid blocks
+
+Example:
+```json
+{
+  "content": "# System Architecture\n\nThe system uses a client-server model...\n\n```mermaid\ngraph TD\n  Client-->Server\n```"
+}
+```
+
+## Complete Example
+
+✅ **CORRECT OUTPUT:**
+```json
+{
+  "thought_process": "I will structure this as a comprehensive technical guide with architecture diagrams, implementation details, and best practices.",
+  "content": "# Technical Documentation\n\n## Overview\n\nThis document provides detailed technical specifications for the distributed processing system.\n\n## Architecture\n\n```mermaid\ngraph TD\n  Client[\"Client Application\"]\n  Server[\"Processing Server\"]\n  Database[(\"Data Store\")]\n  \n  Client -- \"Request\" --> Server\n  Server --> Database\n```\n\n## Implementation\n\nThe system implements a three-tier architecture..."
+}
+```
+
+❌ **INCORRECT OUTPUTS:**
+
+**Wrong: Markdown before JSON**
+```
+# Documentation
+
+Some markdown content...
+
+{
+  "thought_process": "...",
+  "content": "..."
+}
+```
+
+**Wrong: Wrapped in code block**
+```
+```json
+{
+  "content": "..."
+}
+```
+```
+
+**Wrong: Multiple objects**
+```
+{"content": "Part 1"}
+{"content": "Part 2"}
+```

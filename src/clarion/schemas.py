@@ -15,6 +15,15 @@ class GenerationConfig(BaseModel):
     top_k: int = 40
     fast_mode: bool = False
     
+    # Document generation
+    word_budget: int = 2000
+    overlap: int = 2
+    
+    # RAG & Chunking
+    rag_k: int = 5
+    chunk_size: int = 4000
+    chunk_overlap: int = 500
+    
 class InstructionConfig(BaseModel):
     """
     Configuration for prompt ingestion from user files and inline text.
@@ -56,3 +65,20 @@ class DocResult(BaseModel):
     input_file: str
     final_doc: FlexDoc
     manifest_path: str
+
+class DocumentResult(BaseModel):
+    """
+    Single document result for multi-file processing.
+    """
+    filename: str = Field(..., description="Original filename")
+    content: str = Field(..., description="Rendered markdown content")
+    thought_process: Optional[str] = Field(None, description="LLM reasoning if available")
+    generation_time: float = Field(..., description="Time taken to generate this document in seconds")
+    
+class MultiDocResponse(BaseModel):
+    """
+    Response containing multiple generated documents.
+    """
+    documents: List[DocumentResult] = Field(..., description="List of generated documents")
+    total_time: float = Field(..., description="Total processing time in seconds")
+    total_files: int = Field(..., description="Number of files processed")

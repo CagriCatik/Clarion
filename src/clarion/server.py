@@ -2,16 +2,12 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional
-import shutil
-import tempfile
 import os
 import json
 from pathlib import Path
 
-from clarion.schemas import InstructionConfig, DocResult
-from clarion.pipeline import run_pipeline
 from clarion.providers import OllamaProvider
-from clarion.renderer import render_markdown
+from clarion.services.doc_service import DocService
 
 import psutil
 try:
@@ -26,7 +22,20 @@ from fastapi.responses import StreamingResponse
 import asyncio
 import time
 
-app = FastAPI(title="Clarion API", version="0.1.0")
+app = FastAPI(
+    title="Clarion API",
+    version="0.1.0",
+    description="Deterministic scientific documentation generator using LLMs.",
+    contact={
+        "name": "Cagri Catik",
+        "email": "test@gmail.com",
+    },
+    openapi_tags=[
+        {"name": "Core", "description": "Core documentation generation operations"},
+        {"name": "Outputs", "description": "Operations for managing generated documents"},
+        {"name": "System", "description": "Health, models, and system metrics"},
+    ]
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,7 +50,12 @@ class ProcessRequest(BaseModel):
     # We will use simple form params in the endpoint
     pass
 
-@app.post("/v1/docgen")
+@app.post(
+    "/v1/docgen",
+    tags=["Core"],
+    summary="Generate Documentation",
+    description="Process uploaded markdown files with server-sent events for progress tracking and final results."
+)
 async def generate_doc(
     files: List[UploadFile] = File(...),
     instruction: Optional[str] = Form(None),
@@ -51,148 +65,101 @@ async def generate_doc(
     overlap: int = Form(2),
     temperature: float = Form(0.2),
     top_p: float = Form(0.9),
-    num_ctx: int = Form(4096),
+    num_ctx: int = Form(8192),
     presence_penalty: float = Form(0.0),
     frequency_penalty: float = Form(0.0),
     repeat_penalty: float = Form(1.1),
     top_k: int = Form(40),
-    num_predict: int = Form(2048),
-    fast_mode: bool = Form(False)
+    num_predict: int = Form(4096),
+    fast_mode: bool = Form(False),
+    use_rag: bool = Form(False),
+    embedding_model: Optional[str] = Form(None),
+    rag_k: int = Form(5),
+    chunk_size: int = Form(4000),
+    chunk_overlap: int = Form(500),
+    selected_kb_ids: Optional[str] = Form(None)
 ):
     """
     Process uploaded markdown files with server-sent events for progress.
     """
-    
-    # 1. Create unique temp dir for this request
-    # We must do this synchronously before returning to keep files open while we copy them
-    request_temp_dir = tempfile.mkdtemp()
-    request_temp_path = Path(request_temp_dir)
-    
-    try:
-        # 2. Save all prompt files
-        saved_prompt_files = []
-        for pf in prompt_files:
-            p_path = request_temp_path / f"prompt_{pf.filename}"
-            with open(p_path, "wb") as f:
-                shutil.copyfileobj(pf.file, f)
-            saved_prompt_files.append(str(p_path))
-            
-        # 3. Save all input files
-        saved_input_files = []
-        for file in files:
-            i_path = request_temp_path / file.filename
-            with open(i_path, "wb") as f:
-                shutil.copyfileobj(file.file, f)
-            saved_input_files.append(str(i_path))
-            
-    except Exception as e:
-        # If save fails, cleanup and raise
-        shutil.rmtree(request_temp_dir)
-        raise HTTPException(status_code=500, detail=f"Failed to save uploaded files: {e}")
+    """
+    Process uploaded markdown files with server-sent events for progress.
+    """
+    from clarion.services.doc_service import DocService
 
-    # 4. Define generator that uses these saved files
-    async def event_generator():
-        start_time = time.time()
-        try:
-            config = InstructionConfig(
-                user_prompt_files=saved_prompt_files,
-                inline_instruction=instruction
-            )
-            
-            from clarion.schemas import GenerationConfig
-            gen_config = GenerationConfig(
-                temperature=temperature,
-                top_p=top_p,
-                num_ctx=num_ctx,
-                num_predict=num_predict,
-                presence_penalty=presence_penalty,
-                frequency_penalty=frequency_penalty,
-                repeat_penalty=repeat_penalty,
-                top_k=top_k,
-                fast_mode=fast_mode
-            )
-            
-            provider = OllamaProvider(model_name=model)
-            
-            results = []
-            
-            for i, input_path_str in enumerate(saved_input_files):
-                filename = Path(input_path_str).name
-                yield f"event: status\ndata: Processing file {i+1}/{len(saved_input_files)}: {filename}...\n\n"
-                await asyncio.sleep(0.1) 
-                
-                # Callback for pipeline
-                async def progress_callback(msg: str):
-                    clean_msg = msg.replace("\n", " ")
-                    yield f"event: status\ndata: [{filename}] {clean_msg}\n\n"
-                
-                # Run pipeline
-                try:
-                    doc_result = await run_pipeline(config, input_path_str, provider, gen_config, progress_callback)
-                    
-                    # Render
-                    md_output = render_markdown(doc_result.final_doc)
-                    
-                    # Persist to disk
-                    output_dir = Path("outputs")
-                    output_dir.mkdir(exist_ok=True)
-                    
-                    base_name = Path(filename).stem
-                    out_md_path = output_dir / f"{base_name}_doc.md"
-                    out_json_path = output_dir / f"{base_name}_doc.json"
-                    
-                    with open(out_md_path, "w", encoding="utf-8") as f:
-                        f.write(md_output)
-                    with open(out_json_path, "w", encoding="utf-8") as f:
-                        f.write(doc_result.final_doc.model_dump_json(indent=2))
-                    
-                    res_data = {
-                        "filename": filename,
-                        "markdown": md_output,
-                        "json": doc_result.final_doc.model_dump(),
-                        "saved_to": str(out_md_path.absolute())
-                    }
-                    results.append(res_data)
-                    
-                except Exception as e:
-                    import traceback
-                    print(traceback.format_exc())
-                    
-                    err_data = {
-                        "filename": filename,
-                        "error": str(e)
-                    }
-                    results.append(err_data)
-                    yield f"event: error\ndata: Error processing {filename}: {str(e)}\n\n"
+    gen_config_data = {
+        "temperature": temperature,
+        "top_p": top_p,
+        "num_ctx": num_ctx,
+        "num_predict": num_predict,
+        "presence_penalty": presence_penalty,
+        "frequency_penalty": frequency_penalty,
+        "repeat_penalty": repeat_penalty,
+        "top_k": top_k,
+        "fast_mode": fast_mode,
+        "word_budget": word_budget,
+        "overlap": overlap
+    }
 
-            end_time = time.time()
-            duration = end_time - start_time
-            yield f"event: status\ndata: Total generation time: {duration:.2f} seconds\n\n"
+    return StreamingResponse(
+        DocService.process_request_stream(
+            files=files,
+            instruction=instruction,
+            prompt_files=prompt_files,
+            model=model,
+            gen_config_data=gen_config_data,
+            use_rag=use_rag,
+            embedding_model=embedding_model,
+            rag_k=rag_k,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            selected_kb_ids=selected_kb_ids
+        ),
+        media_type="text/event-stream"
+    )
 
-            # Final result
-            yield f"event: result\ndata: {json.dumps({'results': results, 'duration': duration})}\n\n"
-            yield "event: complete\ndata: done\n\n"
-            
-        finally:
-            # CLEANUP TEMP DIR
-            try:
-                shutil.rmtree(request_temp_dir)
-            except Exception as e:
-                print(f"Failed to cleanup temp dir {request_temp_dir}: {e}")
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
-
-@app.get("/v1/models")
+@app.get(
+    "/v1/models",
+    tags=["System"],
+    summary="List Available Models",
+    description="Lists the available Ollama models separated by generation and embedding capabilities."
+)
 async def list_models():
     provider = OllamaProvider()
-    models = await provider.list_models()
-    return {"models": models}
+    all_models = await provider.list_models()
+    
+    # Heuristic: models containing "embed" or "embedding" are for embeddings
+    # Others are for generation.
+    generation_models = []
+    embedding_models = []
+    
+    for m in all_models:
+        name = m.lower()
+        if any(x in name for x in ["embed", "bge", "bert", "minilm", "snowflake"]):
+            embedding_models.append(m)
+        else:
+            generation_models.append(m)
+            
+    return {
+        "models": generation_models,
+        "embeddings": embedding_models
+    }
 
-@app.get("/v1/health")
+@app.get(
+    "/v1/health",
+    tags=["System"],
+    summary="Health Check",
+    description="Simple endpoint to verify the API server is running."
+)
 def health():
     return {"status": "ok"}
 
-@app.get("/v1/metrics")
+@app.get(
+    "/v1/metrics",
+    tags=["System"],
+    summary="Get System Metrics",
+    description="Returns real-time CPU, RAM, and GPU usage metrics."
+)
 async def get_metrics():
     """
     Returns CPU, RAM, and GPU usage metrics.
@@ -216,7 +183,12 @@ async def get_metrics():
         "gpu": gpu_usage
     }
 
-@app.get("/v1/outputs")
+@app.get(
+    "/v1/outputs",
+    tags=["Outputs"],
+    summary="List Generated Outputs",
+    description="Lists all generated markdown documents in the outputs directory, sorted by newest first."
+)
 async def list_outputs():
     """
     List all generated markdown documents.
@@ -249,7 +221,12 @@ async def get_output(filename: str):
 class SaveOutputRequest(BaseModel):
     markdown: str
 
-@app.post("/v1/outputs/{filename}")
+@app.post(
+    "/v1/outputs/{filename}",
+    tags=["Outputs"],
+    summary="Save Output Changes",
+    description="Saves edited markdown content back to the specified output file."
+)
 async def save_output(filename: str, request: SaveOutputRequest):
     """
     Save edited markdown content.
@@ -266,12 +243,39 @@ async def save_output(filename: str, request: SaveOutputRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get(
+    "/v1/kb/documents",
+    tags=["System"],
+    summary="List KB Documents",
+    description="Lists all documents currently indexed in the persistent Knowledge Base."
+)
+async def list_kb_documents(embedding_model: Optional[str] = None):
+    from clarion.knowledge import get_vector_store
+    vs = get_vector_store(embedding_model=embedding_model)
+    return {"documents": vs.list_indexed_documents()}
+
+@app.post(
+    "/v1/kb/index",
+    tags=["System"],
+    summary="Index Document to KB",
+    description="Adds a file to the persistent Knowledge Base for later retrieval."
+)
+async def index_to_kb(file: UploadFile = File(...), embedding_model: Optional[str] = Form(None)):
+    from clarion.knowledge import get_vector_store
+    vs = get_vector_store(embedding_model=embedding_model)
+    
+    content = (await file.read()).decode("utf-8")
+    vs.index_document(file.filename, content)
+    
+    return {"status": "ok", "filename": file.filename}
+
 @app.post("/v1/open_outputs")
-def open_outputs():
+async def open_outputs():
     try:
         output_dir = Path("outputs").resolve()
         output_dir.mkdir(exist_ok=True)
-        os.startfile(str(output_dir))
+        # Run os.startfile in thread as it spawns a process
+        await asyncio.to_thread(os.startfile, str(output_dir))
         return {"status": "ok", "path": str(output_dir)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
