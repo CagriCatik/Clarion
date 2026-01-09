@@ -1,30 +1,56 @@
 services:
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+  ollama:
+    image: ollama/ollama:latest
     ports:
-      - "8000:8000"
+      - "11435:11434" # Changed to 11435 to avoid conflict with local host Ollama
+    volumes:
+      - ollama_data:/root/.ollama
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               count: all
-              capabilities: [ compute, utility, gpu ]
+              capabilities: [ gpu ]
+    entrypoint: [ "/bin/bash", "-c", "ollama serve & sleep 10 && ollama pull olmo-3:7b && wait" ]
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
     volumes:
       - ./outputs:/app/outputs
       - ./inputs:/app/inputs
+      - ./backend:/app/backend
+    depends_on:
+      - ollama
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
     environment:
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
 
   frontend:
     build:
-      context: ./gui
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.frontend
     ports:
-      - "80:80"
+      - "5173:5173"
     depends_on:
       - backend
+    environment:
+      - VITE_PROXY_TARGET=http://backend:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  ollama_data:

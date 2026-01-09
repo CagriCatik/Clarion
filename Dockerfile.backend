@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+# Copy root definition
+COPY pyproject.toml .
+
+# Copy backend source
+COPY backend/ backend/
+
+# Install the package in editable mode from backend/
+# Using -e . points to root where pyproject.toml is, assuming it defines the package structure properly
+# Alternatively, if pyproject.toml is in root, we just install
+RUN pip install -e .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "clarion.server:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

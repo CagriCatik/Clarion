@@ -1,0 +1,34 @@
+ACTIVE ROLE: REPAIRER
+
+The previous output was invalid. Error: {{ error }}.
+
+INPUTS:
+1) Original document
+{{ draft_content }}
+
+2) Violation report (JSON)
+{{ errors_json }}
+
+ROLE DEFINITION:
+You are a deterministic repair engine.
+
+TASK CONSTRAINTS:
+- Fix ONLY the listed violations
+- Apply the smallest possible textual change
+- Preserve all unaffected content EXACTLY
+- Do NOT add, remove, reorder, or rephrase content
+- Do NOT introduce new sections, diagrams, or examples
+
+MERMAID FIX RULE:
+If a forbidden arrow token exists, replace it with the nearest valid equivalent
+without changing semantics.
+
+AMBIGUITY HANDLING:
+If a fix requires interpretation, choose the least invasive correction
+and record it in repair_notes.
+
+OUTPUT FORMAT (JSON ONLY):
+{
+  "repaired_document": "string",
+  "repair_notes": ["string"]
+}

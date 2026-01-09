@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/Akshay090/svg-banners">
+  <a href="#">
     <img
       src="https://svg-banners.vercel.app/api?type=luminance&text1=Clarion&width=400&height=80"
       alt="Clarion Banner"
@@ -8,37 +8,41 @@
   </a>
 </p>
 
-<h3 align="center">Deterministic Scientific and Technical Documentation Generator</h3>
+<h3 align="center">Epistemic Technical Documentation Engine</h3>
 
 <p align="center">
-  <img src="image/ui.png" alt="UI" width="1000">
+  Clarion is a local-first, <b>epistemic</b> documentation generator that ensures correctness through a multi-agent control loop (Generator → Reviewer → Repairer). It converts unstructured inputs into strictly validated technical documents.
 </p>
 
 <h4 align="center">
 
-
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
-[![Poetry](https://img.shields.io/badge/dependency--manager-poetry-60A5FA.svg)](https://python-poetry.org/)
-[![Node.js](https://img.shields.io/badge/node-20%2B-green.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/typescript-strict-blue.svg)](https://www.typescriptlang.org/)
+[![Frontend](https://img.shields.io/badge/frontend-React%20%7C%20Vite-61DAFB.svg)](https://vitejs.dev/)
 [![Backend](https://img.shields.io/badge/backend-FastAPI-teal.svg)](https://fastapi.tiangolo.com/)
-[![Frontend](https://img.shields.io/badge/frontend-React%20%7C%20Vite%20%7C%20Tauri-informational.svg)](https://tauri.app/)
-[![LLM](https://img.shields.io/badge/LLM-Ollama-local.svg)](https://ollama.com/)
+[![LLM](https://img.shields.io/badge/LLM-Ollama-white.svg)](https://ollama.com/)
 [![Mermaid](https://img.shields.io/badge/diagrams-Mermaid-ff3670.svg)](https://mermaid.js.org/)
-[![Docker](https://img.shields.io/badge/containerized-Docker-2496ED.svg)](https://www.docker.com/)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg)](#)
-[![Status](https://img.shields.io/badge/status-active--development-yellow.svg)](#)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/CagriCatik/Clarion)
+
 </h4>
 
---- 
+<p align="center">
+  <img src="image/ui.png" alt="UI Screenshot" width="600">
+</p>
 
-Clarion is an AI-powered system for converting raw transcripts and unstructured notes into deterministic, high-quality technical documentation. Unlike generic chat-based tools, Clarion enforces structure and correctness through a multi-stage agentic pipeline designed for scientific and engineering use cases.
 
-- **Backend**: Python, FastAPI, Pydantic, httpx
-- **Frontend**: TypeScript, React, Vite, Tauri
-- **Orchestration**: concurrently or Docker Compose
+---
+
+## What Makes It "Epistemic"?
+
+Traditional LLM tools just "guess" the output. Clarion **knows** if its output is correct because it validates it against a strict set of rules before you ever see it.
+
+It employs a **Robust Epistemic Loop**:
+
+1. **Generator (Creative)**: Drafts the content based on instructions.
+2. **Decider (Logic)**: Analyzes if a diagram is needed and outputs a JSON spec (not code).
+3. **Renderer (Deterministic)**: A Python engine generates **guaranteed valid** Mermaid syntax from the spec.
+4. **Reviewer (Auditor)**: A skeptical auditor checks the result for compliance violations.
+5. **Repairer (Fixer)**: A deterministic engine surgically fixes *only* the reported violations.
 
 ---
 
@@ -57,126 +61,105 @@ Clarion comes with sample inputs to demonstrate its capabilities.
 
 ---
 
-## Core Capabilities
+## Key Features
 
-### Deterministic Expert Pipeline
-
-Clarion follows a strict, multi-phase generation process to minimize hallucinations and formatting errors:
-
-1. **Context-Aware Chunking**
-   Large inputs are split using a Markdown-aware splitter that preserves semantic boundaries such as headers and paragraphs.
-2. **Planning Before Generation**
-   Each document is preceded by an explicit planning phase (chain-of-thought style) to define structure and intent before text generation.
-3. **Reflection and Self-Correction**
-   A post-generation review pass validates formatting, Mermaid syntax, and structural consistency, correcting errors automatically.
-
-This pipeline prioritizes repeatability, traceability, and correctness over stylistic variability.
+* **Epistemic Reliability**: Self-correcting pipeline that catches syntax errors (like invalid Mermaid graphs) automatically.
+* **Local AI Processing**: Fully automated generation using local LLMs via **Ollama** (privacy-first).
+* **Structured Output**: Generates strictly formatted Markdown with frontmatter, headers, and tables.
+* **Mermaid Diagrams**: Automatically creates flowcharts, sequence diagrams, and process maps.
+* **Smart Sanitization**: Backend regex logic instantly fixes common LLM markdown errors.
+* **Live Preview**: Real-time Markdown rendering with zoomable Mermaid diagram support.
+* **Advanced Controls**: Fine-tune Temperature, Top-P, and Penalties directly from the UI.
+* **Structured Output**: Generates strictly formatted Markdown with frontmatter and headers.
+* **Live Preview**: Real-time rendering with zoomable diagrams.
 
 ---
 
-### User Interface
+## Quick Start
 
-* Split-pane layout with live Markdown preview.
-* Enforced professional dark theme.
-* Native Mermaid diagram rendering.
-* Inline tooltips for advanced LLM parameters such as temperature and top-p.
+### Option A: Docker (Recommended)
 
----
-
-### Configurable Prompt System
-
-* All system prompts are stored as external Jinja2 templates in `src/clarion/prompts`.
-* Prompts can be edited without modifying application code.
-* Templates are hot-reloaded on each generation via the `PromptLoader`.
-
-This design enables rapid iteration on reasoning strategies and output structure.
-
----
-
-## Installation
-
-### Prerequisites
-
-* **Ollama**, installed and running locally (`ollama serve`)
-* **Recommended models**: `glm-4.6:cloud`,`gpt-oss:20b-cloud`, `gpt-oss:120b-cloud`
-* **Python 3.11 or newer**, preferably managed with Poetry
-* **Node.js 20 or newer** for the frontend
-
-### Setup
-
-```powershell
-# Install backend dependencies
-poetry install
-
-# Install frontend dependencies
-cd gui
-npm install
-cd ..
-```
-
----
-
-## Running Clarion
-
-### Option A: Unified Development Script (Recommended)
-
-On Windows, a single script is provided:
-
-```powershell
-.\start_dev.bat
-```
-
-This launches the FastAPI backend and the React frontend together using `concurrently`.
-
----
-
-### Option B: Docker
-
-Run the full stack in containers:
+Run the entire system (Backend, Frontend, and Ollama with GPU support) in containers.
 
 ```powershell
 docker-compose up --build
 ```
 
-Endpoints:
+* **Frontend**: [http://localhost:5173](http://localhost:5173)
+* **Backend**: [http://localhost:8000](http://localhost:8000)
+* **Ollama**: Internal + GPU passthrough (Model `llama3.1:8b` or `olmo-3:7b` auto-pulled)
 
-* Frontend: [http://localhost:1420](http://localhost:1420)
-* Backend: [http://localhost:8000](http://localhost:8000)
-* Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
-* ReDoc: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+### Option B: Local Windows
 
-Note: Containers connect to the host Ollama instance via `host.docker.internal`.
+1. **Prerequisite**: Install [Ollama](https://ollama.com/) and run `ollama serve`.
+2. **Run Script**:
+   ```powershell
+   .\run_app.bat
+   ```
 
 ---
 
-### Option C: Manual Startup
+## Architecture: The Epistemic Loop
 
-**Backend:**
+Clarion uses a strict role-based control loop to ensure quality.
 
-```powershell
-poetry run uvicorn clarion.server:app --reload
+```mermaid
+graph TD
+    classDef role fill:#9cf,stroke:#333,stroke-width:1px;
+    classDef logic fill:#ff9,stroke:#333,stroke-width:2px;
+
+    User([User Input]) --> Gen["02_GENERATOR"]
+    Gen --> |Draft Text| Dec{"03_DECIDER"}
+    Dec --> |"Needs Diagram"| PyRender["Python Renderer"]
+    Dec --> |"No Diagram"| Rev
+    PyRender --> |"Valid Syntax"| Rev["04_REVIEWER"]
+    
+    Rev --> |"Review Report"| Check{Safe?}
+    Check --> |"Yes"| Out([Final Doc])
+    Check --> |"Violations"| Rep["05_REPAIRER"]
+    Rep --> Out
+    
+    style PyRender fill:#e0f2f1,stroke:#00695c,stroke-dasharray: 5 5
 ```
 
-**Frontend:**
+### Prompt System (`backend/clarion/prompts`)
 
-```powershell
-cd gui
-npm run tauri dev
-```
+The prompt system is strictly organized by **Task Roles**:
+
+* `01_system_core.j2`: The **Unified System Prompt** defining global invariants.
+* `02_task_generator.j2`: Instructions for Drafting.
+* `03_mermaid_decider.j2`: Logic for diagram specification (JSON output).
+* `04_task_reviewer.j2`: Instructions for Auditing.
+* `05_task_repairer.j2`: Instructions for Fixing.
+
+For a deep dive, see [prompt chaining](docs/PROMPT_CHAINING.md).
 
 ---
 
 ## API Documentation
 
-FastAPI provides automatic interactive documentation for the Clarion API:
+Since the backend is built with **FastAPI**, fully interactive API documentation is available:
 
-* **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs) - Interactive UI for testing and exploring endpoints.
-* **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc) - Clean, searchable documentation layout.
+* **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
+* **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
-The API is organized into **Core**, **Outputs**, and **System** tags for easy navigation.
+The API is organized into Core, Outputs, and System tags for easy navigation.
+
+---
+
+## Configuration
+
+### Changing Models
+
+- You can select different models directly from the UI dropdown. 
+- Ensure you have pulled them via Ollama (`ollama pull <model>`).
+
+### Customizing Roles
+
+- Edit the templates in `backend/clarion/prompts/` to change the behavior of specific roles.
 
 ## Disclaimer
 
-* Clarion improves consistency and structure by using a multi-stage LLM pipeline, but it does not guarantee factual correctness by itself. 
-* Outputs should be treated as high-quality drafts derived from the input, not as an authoritative source of truth. 
-* For scientific, security, or safety-critical documentation, results must be reviewed and validated against the original transcript and external references.
+- Clarion improves consistency and structure by using a multi-stage LLM pipeline, but it does not guarantee factual correctness by itself.
+- Outputs should be treated as high-quality drafts derived from the input, not as an authoritative source of truth.
+- For scientific, security, or safety-critical documentation, results must be reviewed and validated against the original transcript and external references.

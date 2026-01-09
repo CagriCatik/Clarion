@@ -1,0 +1,27 @@
+TASK: Analyze the input text and design a Mermaid Flowchart if it aids understanding.
+
+INPUT CONTENT:
+{{ context }}
+
+GUIDELINES:
+- Create a diagram ONLY if it visualizes a process, hierarchy, or state change described in the text.
+- If no diagram is needed, return "use_mermaid": false.
+- DESIGN RULES:
+  - Nodes: concepts, steps, or components. IDs must be alphanumeric (e.g., Node1, LoginStep).
+  - Edges: relationships or flow. Labels should be short (1-4 words).
+  - Type: "solid" (primary flow) or "dotted" (optional/secondary).
+
+OUTPUT SCHEMA (JSON ONLY):
+{
+  "use_mermaid": boolean,
+  "diagram_intent": "string (why?)",
+  "spec": {
+    "direction": "TD" | "LR",
+    "nodes": [
+      { "id": "string", "label": "string" }
+    ],
+    "edges": [
+      { "source": "string", "target": "string", "label": "string", "type": "solid" | "dotted" }
+    ]
+  }
+}
