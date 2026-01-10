@@ -31,11 +31,21 @@ async def test_epistemic_pipeline_flow():
     config = InstructionConfig(inline_instruction="Test Instruction")
     gen_config = GenerationConfig()
     
-    # Run
+    # Run with REAL input
+    from pathlib import Path
+    real_input = Path(r"C:\Users\mccat\Documents\Clarion\inputs\01_protection-eavesdrop.md")
+    if real_input.exists():
+        with open(real_input, "r", encoding="utf-8") as f:
+            input_text = f.read()
+        fname = real_input.name
+    else:
+        input_text = "Short input text for one-shot strategy."
+        fname = "dummy.md"
+
     # Input must be long enough to avoid "Short input" skip logic if using mocked content
     result = await pipeline.run(
-        input_path="dummy.md",
-        input_text_full="Short input text for one-shot strategy.",
+        input_path=fname,
+        input_text_full=input_text,
         instruction_config=config,
         generation_config=gen_config,
         status_callback=AsyncMock()

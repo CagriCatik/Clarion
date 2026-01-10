@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
+from pathlib import Path
 from clarion.server import app
 
 client = TestClient(app)
@@ -30,7 +31,7 @@ def test_all_parameters_transmission(mock_provider, mock_run_pipeline):
     
     # 2. Define non-default values for every parameter to ensure defaults aren't hiding issues
     test_params = {
-        "model": "deepseek-coder:33b",
+        "model": "llama3.1:8b",
         "instruction": "Specific test instruction",
         "word_budget": "1500",
         "overlap": "5",
@@ -45,8 +46,18 @@ def test_all_parameters_transmission(mock_provider, mock_run_pipeline):
         "fast_mode": "true", # Boolean sent as string in FormData
     }
     
-    # 3. Create dummy file
-    files = {'files': ('test.md', 'content', 'text/markdown')}
+    # 3. Create real file payload
+    real_input_path = Path(r"C:\Users\mccat\Documents\Clarion\inputs\01_protection-eavesdrop.md")
+    if not real_input_path.exists():
+        # Fallback if file doesn't exist (e.g. CI), though user said it does
+        content = "# Mock Content"
+        filename = "fallback.md"
+    else:
+        with open(real_input_path, "rb") as f:
+            content = f.read()
+        filename = real_input_path.name
+
+    files = {'files': (filename, content, 'text/markdown')}
     
     # 4. Make Request
     response = client.post("/v1/docgen", data=test_params, files=files)
@@ -78,12 +89,17 @@ def test_all_parameters_transmission(mock_provider, mock_run_pipeline):
     assert gen_config.top_k == 60
     assert gen_config.fast_mode is True
     
-    # Check Instruction Config
-    # Instruction config is the 1st argument (index 0)
     instruction_config = args[0]
     assert instruction_config.inline_instruction == "Specific test instruction"
     
     # Check Provider setup
-    mock_provider.assert_called_with(model_name="deepseek-coder:33b")
+    mock_provider.assert_called_with(model_name="llama3.1:8b")
     
     print("All parameters transmitted correctly!")
+    
+    # Cleanup
+    from clarion.server import OUTPUT_DIR
+    for f in ["test_doc.md", "test_doc.json"]:
+        p = OUTPUT_DIR / f
+        if p.exists():
+            p.unlink()

@@ -301,8 +301,16 @@ class TestIntegration:
         import os
         
         # Create temp input file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
-            f.write("# Test Input\n\nThis is a test document about software.")
+        # Create temp input file with REAL content
+        real_input = Path(r"C:\Users\mccat\Documents\Clarion\inputs\01_protection-eavesdrop.md")
+        if real_input.exists():
+            with open(real_input, "r", encoding="utf-8") as rf:
+                content = rf.read()
+        else:
+            content = "# Test Input\n\nThis is a test document about software."
+
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
+            f.write(content)
             temp_path = f.name
             
         try:

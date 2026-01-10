@@ -106,31 +106,12 @@ export const Mermaid = ({ chart }: { chart: string }) => {
         };
     }, [chart]);
 
-    const handleWheel = (e: React.WheelEvent) => {
-        if (e.ctrlKey) {
-            e.preventDefault();
-            e.stopPropagation(); // Stop propagation to prevent page scroll
-            const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            setScale(s => Math.min(Math.max(0.2, s + delta), 5));
-        }
-    };
-
-    const handleMouseDown = (e: React.MouseEvent) => {
-        e.preventDefault();
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-    };
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!isDragging) return;
-        setPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-    };
-
-    const handleMouseUp = () => setIsDragging(false);
+    // Simplified rendering without the "Window" chrome or manual zoom/pan
+    // The user wants to see the diagram "directly" and "entirely".
 
     if (isLoading) {
         return (
-            <div className="skeleton-loader">
+            <div className="skeleton-loader" style={{ margin: "1.5rem 0" }}>
                 <div className="skeleton-spinner"></div>
                 <div className="skeleton-text">Generating Diagram...</div>
             </div>
@@ -138,61 +119,25 @@ export const Mermaid = ({ chart }: { chart: string }) => {
     }
 
     return (
-        <div className="mermaid-window" style={{ margin: "1.5rem 0", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--bg-elevated)", overflow: "hidden" }}>
-            {/* Window Header */}
-            <div style={{
+        <div
+            className="mermaid-container"
+            style={{
+                margin: "1.5rem 0",
+                width: "100%",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "8px 12px",
-                background: "var(--bg-surface)",
-                borderBottom: "1px solid var(--border)"
-            }}>
-                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18" /><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" /></svg>
-                    Diagram
-                </div>
-                <div style={{ display: "flex", gap: "4px" }}>
-                    <button onClick={() => setScale(s => Math.min(5, s + 0.2))} className="icon-btn" title="Zoom In" style={{ width: '24px', height: '24px' }}><IconZoomIn /></button>
-                    <button onClick={() => setScale(s => Math.max(0.2, s - 0.2))} className="icon-btn" title="Zoom Out" style={{ width: '24px', height: '24px' }}><IconZoomOut /></button>
-                    <button onClick={() => { setScale(1); setPosition({ x: 0, y: 0 }); }} className="icon-btn" title="Reset" style={{ width: '24px', height: '24px' }}>⟲</button>
-                </div>
-            </div>
-
-            {/* Main Viewport */}
+                justifyContent: "center",
+                overflowX: "auto" // Allow horizontal scroll only if absolutely wider than screen
+            }}
+        >
             <div
-                className="mermaid-viewport"
                 style={{
-                    position: "relative",
-                    background: "var(--bg-base)",
-                    overflow: "hidden",
-                    height: "500px",  // Increased height
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: isDragging ? "grabbing" : "grab"
+                    width: "100%",
+                    height: "auto",
+                    // Reset standard mermaid SVG sizing quirks if needed
+                    lineHeight: 0
                 }}
-                onWheel={handleWheel}
-                onMouseLeave={handleMouseUp}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-            >
-                <div
-                    style={{
-                        transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                        transformOrigin: "center",
-                        width: "100%",
-                        height: "100%",
-                        transition: isDragging ? "none" : "transform 0.1s ease-out",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        pointerEvents: "none" // Allow drag on parent, not SVG
-                    }}
-                    dangerouslySetInnerHTML={{ __html: svg }}
-                />
-            </div>
+                dangerouslySetInnerHTML={{ __html: svg }}
+            />
         </div>
     );
 };

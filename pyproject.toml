@@ -19,6 +19,10 @@ jinja2 = ">=3.1.0"
 psutil = ">=5.9.0"
 nvidia-ml-py = ">=12.535.133"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-asyncio = "^0.23.0"
+
 [tool.poetry.scripts]
 clarion = "clarion.cli:app"
 

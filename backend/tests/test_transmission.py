@@ -71,21 +71,26 @@ def test_docgen_full_transmission(monkeypatch):
     # Create a dummy DocResult with a ReviewReport to verify transmission back to UI
     from clarion.schemas import DocResult, FlexDoc, ReviewReport, TextIssue, MermaidError
     
-    dummy_result = DocResult(
-        input_file="test_input.md",
-        final_doc=FlexDoc(
-            content="# Test Doc",
-            review_report=ReviewReport(
-                confidence_score=0.85,
-                text_issues=[
-                    TextIssue(location="L10", issue="Typo", suggested_fix="Fix it")
-                ],
-                mermaid_errors=[]
-            )
-        ),
-        manifest_path="manifest.json"
-    )
-    mock_run_pipeline.return_value = dummy_result
+    # Dynamic Side Effect
+    async def mock_run_implementation(config, input_path, provider, gen_config, status_callback):
+        # Infer filename from path
+        fname = Path(input_path).name
+        return DocResult(
+            input_file=input_path,
+            final_doc=FlexDoc(
+                content=f"# Generated Documentation for {fname}\n\nThis is a mock generation based on the real input context.",
+                review_report=ReviewReport(
+                    confidence_score=0.85,
+                    text_issues=[
+                        TextIssue(location="L10", issue="Typo", suggested_fix="Fix it")
+                    ],
+                    mermaid_errors=[]
+                )
+            ),
+            manifest_path="manifest.json"
+        )
+            
+    mock_run_pipeline.side_effect = mock_run_implementation
     
     # Patch run_pipeline in server module
     monkeypatch.setattr(server_module, "run_pipeline", mock_run_pipeline)
@@ -95,8 +100,18 @@ def test_docgen_full_transmission(monkeypatch):
     monkeypatch.setattr(OllamaProvider, "__init__", lambda self, model_name="x", base_url=None: None)
 
     # Payload
+    # Payload
+    real_input_path = Path(r"C:\Users\mccat\Documents\Clarion\inputs\01_protection-eavesdrop.md")
+    if real_input_path.exists():
+        with open(real_input_path, "rb") as f:
+            file_bytes = f.read()
+        filename = real_input_path.name
+    else:
+        file_bytes = b'# Test Input'
+        filename = 'test_input.md'
+
     files = [
-        ('files', ('test_input.md', b'# Test Input', 'text/markdown'))
+        ('files', (filename, file_bytes, 'text/markdown'))
     ]
     
     data = {

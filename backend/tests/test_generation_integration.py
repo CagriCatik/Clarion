@@ -26,17 +26,20 @@ def test_docgen_integration(mock_run_pipeline):
     from unittest.mock import MagicMock
     
     # Mock the return value of run_pipeline
+    # Mock the return value of run_pipeline
     async def side_effect(config, input_path, provider, generation_config, status_callback):
         # Simulate some progress
         if status_callback:
             await status_callback("Mocking progress 1...")
             await status_callback("Mocking progress 2...")
             
+        fname = os.path.basename(input_path)
+            
         # Return a dummy DocResult
         return DocResult(
-            input_file="test_input.md",
+            input_file=input_path,
             final_doc=FlexDoc(
-                content="# Generated Test Doc\n\nMocked content.",
+                content=f"# Generated Documentation for {fname}\n\nMocked content based on real input context.",
                 thought_process="Mock thoughts"
             ),
             manifest_path=""
@@ -44,18 +47,19 @@ def test_docgen_integration(mock_run_pipeline):
         
     mock_run_pipeline.side_effect = side_effect
 
-    # 1. Prepare dummy input file
-    file_content = """
-# Test Document
-
-This is a small test document to verify the generation pipeline.
-It contains some basic text and a list:
-- Item 1
-- Item 2
-    """
+    # 1. Prepare input file (Real)
+    real_input_path = os.path.join(r"C:\Users\mccat\Documents\Clarion\inputs", "01_protection-eavesdrop.md")
+    
+    if os.path.exists(real_input_path):
+        with open(real_input_path, "r", encoding="utf-8") as f:
+            file_content = f.read()
+        filename = "01_protection-eavesdrop.md"
+    else:
+        file_content = "# Dummy Content"
+        filename = "test_input.md"
     
     files = {
-        'files': ('test_input.md', file_content, 'text/markdown')
+        'files': (filename, file_content, 'text/markdown')
     }
     
     # 2. Prepare Form Data

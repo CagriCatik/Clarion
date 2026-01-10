@@ -49,7 +49,7 @@ export const MarkdownViewer = ({ content, zoom, filename }: Props) => {
     }), []);
 
     return (
-        <div className="markdown-content" style={{ fontSize: `${zoom}em` }}>
+        <div className="markdown-content" style={{ zoom: zoom }}>
             {/* 
          We use the filename as a specific key for the ErrorBoundary.
          This forces a complete remount of the markdown viewer (and Mermaid diagrams)

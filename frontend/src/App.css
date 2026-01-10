@@ -983,6 +983,21 @@ body {
   margin-bottom: 1.2rem;
 }
 
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1.2rem;
+}
+
+.markdown-content li {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content li>ul,
+.markdown-content li>ol {
+  margin-top: 0.5rem;
+}
+
 .markdown-content pre {
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -1508,8 +1523,15 @@ body {
     overflow: visible !important;
   }
 
+
   /* Hide scrollbars */
   ::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* === MERMAID RESPONSIVENESS === */
+.mermaid-container svg {
+  max-width: 100%;
+  height: auto;
 }

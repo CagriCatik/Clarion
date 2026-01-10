@@ -168,6 +168,40 @@ class DirectPipeline:
         try:
             review_report = await self.provider.generate_json(review_prompt, ReviewReport, config, model_override=rev_model)
             
+            # --- DETERMINISTIC LINTER PASS ---
+            # The LLM is good at extensive logic, but the Linter is 100% accurate on syntax items like `|>` or forbidden tokens.
+            # We run the linter and APPEND errors to the ReviewReport.
+            try:
+                from clarion.mermaid.linter import MermaidLinter
+                from clarion.schemas import MermaidError
+                
+                # Simple extraction of mermaid blocks
+                mermaid_pattern = r"```mermaid\n(.*?)\n```"
+                blocks = list(re.finditer(mermaid_pattern, draft_doc.content, re.DOTALL))
+                
+                for idx, match in enumerate(blocks):
+                    code_block = match.group(1)
+                    lint_result = MermaidLinter.lint(code_block)
+                    
+                    if not lint_result.is_valid:
+                        for err in lint_result.errors:
+                            # Add to the report
+                            review_report.mermaid_errors.append(MermaidError(
+                                diagram_id=f"Diagram_{idx+1}",
+                                block_index=idx,
+                                line=err.line,
+                                issue=f"[AUTO-LINTER] {err.issue}",
+                                suggested_fix=err.suggested_fix
+                            ))
+                            
+                        # Force confidence down if we found objective errors
+                        review_report.confidence_score = 0.0
+                        
+            except Exception as lint_ex:
+                print(f"Linter pass failed: {lint_ex}")
+                # Don't crash the pipeline for linter errors
+                pass
+            
             # Attach report to document for frontend "Interactive Mode"
             draft_doc.review_report = review_report
             
